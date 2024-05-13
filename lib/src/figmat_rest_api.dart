@@ -31,8 +31,7 @@ class FigmaRestApi {
     });
   }
 
-  static Future<String> _handleResponse(
-      Response httpResponse, String nodeId) async {
+  static Future<String> _handleResponse(Response httpResponse, String nodeId) async {
     if (httpResponse.statusCode! >= 200 && httpResponse.statusCode! < 300) {
       final responseJson = httpResponse.data;
 
