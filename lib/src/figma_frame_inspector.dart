@@ -2,7 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:figma_frame_inspector/src/figmat_rest_api.dart';
 import 'package:flutter/material.dart';
 
-enum StackOrder { childOnTop, figmaFrameOnTop }
+enum ChildDisplayType {
+  disabled,
+  stackedChildOnTop,
+  stackedChildOnBottom,
+  rowChildOnLeft,
+  rowChildOnRight,
+  columnChildOnTop,
+  columnChildOnBottom,
+}
 
 ///
 /// Widget which renders provided Figma frame on top of screen widget.
@@ -31,19 +39,9 @@ class FigmaFrameInspector extends StatefulWidget {
   final double initialOpacity;
 
   ///
-  /// Enable or disable the frame overlay (default `true`).
-  ///
-  final bool enabled;
-
-  ///
   /// Child widget which will be rendered on bellow of the Figma frame.
   ///
   final Widget child;
-
-  ///
-  /// Alignment of the Figma frame on the screen.
-  ///
-  final AlignmentDirectional alignment;
 
   ///
   /// Opacity notifier for the Figma frame.
@@ -51,9 +49,9 @@ class FigmaFrameInspector extends StatefulWidget {
   final ValueNotifier<double>? opacityNotifier;
 
   ///
-  /// Stack order of the Figma frame and child widget. Default is `StackOrder.figmaFrameOnTop`.
+  /// Stack order of the Figma frame and child widget.
   ///
-  final StackOrder stackOrder;
+  final ChildDisplayType childDisplayType;
 
   ///
   /// Creates [FigmaFrameInspector] widget.
@@ -64,10 +62,8 @@ class FigmaFrameInspector extends StatefulWidget {
     required this.figmaToken,
     this.scale = 1,
     this.initialOpacity = .3,
-    this.enabled = true,
-    this.alignment = AlignmentDirectional.topEnd,
     this.opacityNotifier,
-    this.stackOrder = StackOrder.figmaFrameOnTop,
+    this.childDisplayType = ChildDisplayType.stackedChildOnTop,
     required this.child,
   }) : super(key: key);
 
@@ -91,28 +87,75 @@ class _FigmaFrameInspectorState extends State<FigmaFrameInspector> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.enabled) {
+    if (widget.childDisplayType == ChildDisplayType.disabled || _imageUrl == null) {
       return widget.child;
     }
 
-    if (_imageUrl != null) {
+    final figmaWidget = CachedNetworkImage(
+      imageUrl: _imageUrl!,
+      width: MediaQuery.of(context).size.width,
+      imageBuilder: (context, imageProvider) => Transform.scale(
+        scale: widget.scale,
+        child: Opacity(
+          opacity: widget.opacityNotifier?.value ?? widget.initialOpacity,
+          child: Image(image: imageProvider),
+        ),
+      ),
+    );
+
+    bool useStack = false;
+    bool useRow = false;
+    bool useColumn = false;
+
+    switch (widget.childDisplayType) {
+      case ChildDisplayType.stackedChildOnTop:
+      case ChildDisplayType.stackedChildOnBottom:
+        useStack = true;
+        break;
+      case ChildDisplayType.rowChildOnLeft:
+      case ChildDisplayType.rowChildOnRight:
+        useRow = true;
+        break;
+      case ChildDisplayType.columnChildOnTop:
+      case ChildDisplayType.columnChildOnBottom:
+        useColumn = true;
+        break;
+      default:
+    }
+
+    if (useStack) {
       return Stack(
-        alignment: widget.alignment,
+        alignment: Alignment.center,
         children: <Widget>[
-          if (widget.stackOrder == StackOrder.figmaFrameOnTop) widget.child,
-          CachedNetworkImage(
-            imageUrl: _imageUrl!,
-            width: MediaQuery.of(context).size.width,
-            imageBuilder: (context, imageProvider) => Opacity(
-              opacity: widget.opacityNotifier?.value ?? widget.initialOpacity,
-              child: Image(image: imageProvider),
-            ),
-          ),
-          if (widget.stackOrder == StackOrder.childOnTop) widget.child,
+          if (widget.childDisplayType == ChildDisplayType.stackedChildOnBottom) widget.child,
+          figmaWidget,
+          if (widget.childDisplayType == ChildDisplayType.stackedChildOnTop) widget.child,
         ],
       );
-    } else {
-      return widget.child;
     }
+
+    if (useRow) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (widget.childDisplayType == ChildDisplayType.rowChildOnLeft) widget.child,
+          figmaWidget,
+          if (widget.childDisplayType == ChildDisplayType.rowChildOnRight) widget.child,
+        ],
+      );
+    }
+
+    if (useColumn) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (widget.childDisplayType == ChildDisplayType.columnChildOnTop) widget.child,
+          figmaWidget,
+          if (widget.childDisplayType == ChildDisplayType.columnChildOnBottom) widget.child,
+        ],
+      );
+    }
+
+    return widget.child;
   }
 }

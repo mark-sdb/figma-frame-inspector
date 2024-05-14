@@ -46,7 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       figmaToken: '<figma_access_token>',
       scale: 3,
       initialOpacity: .3,
-      enabled: true,
+      childDisplayType: ChildDisplayType.columnChildOnTop,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(
