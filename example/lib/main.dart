@@ -42,13 +42,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return FigmaFrameInspector(
-      frameUrl:
-          "https://www.figma.com/file/6E14t4azafuLcz2hUpedeL/Login-%26-Signup-Screen-(Community)?node-id=1%3A2",
+      frameUrl: "https://www.figma.com/file/6E14t4azafuLcz2hUpedeL/Login-%26-Signup-Screen-(Community)?node-id=1%3A2",
       figmaToken: '<figma_access_token>',
       scale: 3,
       initialOpacity: .3,
       enabled: true,
-      isTouchToChangeOpacityEnabled: true,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Stack(

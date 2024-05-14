@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:figma_frame_inspector/src/figmat_rest_api.dart';
 import 'package:flutter/material.dart';
 
+enum StackOrder { childOnTop, figmaFrameOnTop }
+
 ///
 /// Widget which renders provided Figma frame on top of screen widget.
 ///
@@ -34,18 +36,24 @@ class FigmaFrameInspector extends StatefulWidget {
   final bool enabled;
 
   ///
-  /// Enable or disable vertical scroll to change the frame overlay opacity (default `true`).
-  ///
-  final bool isTouchToChangeOpacityEnabled;
-
-  ///
   /// Child widget which will be rendered on bellow of the Figma frame.
   ///
   final Widget child;
 
+  ///
+  /// Alignment of the Figma frame on the screen.
+  ///
   final AlignmentDirectional alignment;
 
+  ///
+  /// Opacity notifier for the Figma frame.
+  ///
   final ValueNotifier<double>? opacityNotifier;
+
+  ///
+  /// Stack order of the Figma frame and child widget. Default is `StackOrder.figmaFrameOnTop`.
+  ///
+  final StackOrder stackOrder;
 
   ///
   /// Creates [FigmaFrameInspector] widget.
@@ -54,12 +62,12 @@ class FigmaFrameInspector extends StatefulWidget {
     Key? key,
     required this.frameUrl,
     required this.figmaToken,
-    this.scale = 3,
+    this.scale = 1,
     this.initialOpacity = .3,
     this.enabled = true,
-    this.isTouchToChangeOpacityEnabled = true,
     this.alignment = AlignmentDirectional.topEnd,
     this.opacityNotifier,
+    this.stackOrder = StackOrder.figmaFrameOnTop,
     required this.child,
   }) : super(key: key);
 
@@ -91,63 +99,20 @@ class _FigmaFrameInspectorState extends State<FigmaFrameInspector> {
       return Stack(
         alignment: widget.alignment,
         children: <Widget>[
-          widget.child,
-          FigmaImageContainer(
-            isTouchToChangeOpacityEnabled: widget.isTouchToChangeOpacityEnabled,
-            initialOpacity: widget.initialOpacity,
-            opacityNotifier: widget.opacityNotifier,
-            figmaImageUrl: _imageUrl!,
-          )
+          if (widget.stackOrder == StackOrder.figmaFrameOnTop) widget.child,
+          CachedNetworkImage(
+            imageUrl: _imageUrl!,
+            width: MediaQuery.of(context).size.width,
+            imageBuilder: (context, imageProvider) => Opacity(
+              opacity: widget.opacityNotifier?.value ?? widget.initialOpacity,
+              child: Image(image: imageProvider),
+            ),
+          ),
+          if (widget.stackOrder == StackOrder.childOnTop) widget.child,
         ],
       );
     } else {
       return widget.child;
     }
-  }
-}
-
-class FigmaImageContainer extends StatelessWidget {
-  final String figmaImageUrl;
-  final double initialOpacity;
-  final bool isTouchToChangeOpacityEnabled;
-  final ValueNotifier<double>? opacityNotifier;
-
-  const FigmaImageContainer({
-    Key? key,
-    required this.figmaImageUrl,
-    required this.initialOpacity,
-    required this.isTouchToChangeOpacityEnabled,
-    this.opacityNotifier,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return CachedNetworkImage(
-      imageUrl: figmaImageUrl,
-      width: MediaQuery.of(context).size.width,
-      imageBuilder: (context, imageProvider) => _DynamicOpacity(
-        opacityNotifier: opacityNotifier ?? ValueNotifier(1.0),
-        child: Image(image: imageProvider),
-      ),
-    );
-  }
-}
-
-class _DynamicOpacity extends StatelessWidget {
-  final ValueNotifier opacityNotifier;
-  final Widget child;
-
-  const _DynamicOpacity({
-    Key? key,
-    required this.opacityNotifier,
-    required this.child,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: opacityNotifier.value,
-      child: child,
-    );
   }
 }
